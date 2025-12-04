@@ -3,7 +3,7 @@ from datetime import datetime
 
 st.set_page_config(page_title="Clinical Note Generator", page_icon="🏥", layout="wide")
 
-st.title("🏥 Clinical Note Generator (Demo)")
+st.title("🏥 Clinical Note Generator ")
 
 # Small required notice (kept minimal)
 st.caption("Prototype for internship project. Not for real clinical use.")
