@@ -43,3 +43,4 @@ if st.button("Generate Clinical Note"):
         st.markdown(clinical_note)
 
 
+
