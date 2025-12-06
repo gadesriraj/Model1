@@ -139,3 +139,15 @@ if st.button("Generate Clinical Note", type="primary", use_container_width=True)
 
 st.divider()
 st.caption("Backend: " + BACKEND_URL)
+
+st.subheader("🔍 View Saved Records")
+
+if st.button("Load backend records"):
+    try:
+        resp = requests.get(f"{BACKEND_URL}/records", timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+        st.success(f"Loaded {data['count']} records from backend.")
+        st.dataframe(data["records"])
+    except Exception as e:
+        st.error(f"Error loading records: {e}")
