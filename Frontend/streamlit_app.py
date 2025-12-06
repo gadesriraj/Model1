@@ -138,4 +138,4 @@ if st.button("Generate Clinical Note", type="primary", use_container_width=True)
                 st.error(f"Backend error: {e}")
 
 st.divider()
-st.caption(f"Backend: {BACKEND_URL}")
+st.caption("Backend: " + BACKEND_URL)
