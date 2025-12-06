@@ -5,93 +5,137 @@ import requests
 # 🔗 Backend API URL (Render)
 BACKEND_URL = "https://backend-a1v7.onrender.com"  # change if your URL is different
 
+# ---------- Page config ----------
 st.set_page_config(
     page_title="Clinical Note Generator",
     page_icon="🏥",
     layout="wide"
 )
 
+# ---------- Title ----------
 st.title("🏥 Clinical Note Generator")
-
 st.caption("Infosys Internship Project – Cloud-connected prototype")
 
 st.divider()
 
-# -------- Input Fields --------
-col1, col2 = st.columns(2)
+# ---------- Input layout ----------
+col_left, col_right = st.columns(2)
 
-with col1:
-    name = st.text_input("Patient Name", value="John Doe")
-    age = st.number_input("Age", min_value=0, max_value=120, value=45)
-    gender = st.selectbox("Gender", ["Male", "Female", "Other"])
+with col_left:
+    patient_name = st.text_input(
+        "Patient Name",
+        value="",
+        placeholder="Enter patient name"
+    )
 
-with col2:
+    patient_age = st.number_input(
+        "Age",
+        min_value=0,
+        max_value=120,
+        value=0,
+        step=1
+    )
+
+    gender = st.selectbox(
+        "Gender",
+        ["Select", "Male", "Female", "Other"],
+        index=0
+    )
+
+    medical_history = st.text_area(
+        "Medical History (optional)",
+        value="",
+        placeholder="e.g., Hypertension, Diabetes",
+        height=80
+    )
+
+with col_right:
     symptoms = st.text_area(
         "Symptoms",
-        value="Cough, chest pain, and shortness of breath",
-        height=100
-    )
-    scan_result = st.text_input(
-        "Scan Result (optional)",
-        value="X-ray indicates mild pneumonia"
+        value="",
+        placeholder="Describe the patient's symptoms...",
+        height=120
     )
 
-medical_history = st.text_area(
-    "Medical History (optional)",
-    value="Hypertension",
-    height=80
-)
+    scan_result = st.text_input(
+        "Scan Result (optional)",
+        value="",
+        placeholder="e.g., Chest X-ray shows mild pneumonia"
+    )
 
 st.divider()
 
-# -------- Helper to call backend --------
+# ---------- Helper: call backend ----------
 def call_backend():
     payload = {
-        "name": name,
-        "age": age,
-        "gender": gender,
+        "name": patient_name,
+        "age": patient_age,
+        "gender": gender if gender != "Select" else "Not specified",
         "symptoms": symptoms,
         "scan_result": scan_result if scan_result.strip() else "No imaging performed",
         "medical_history": medical_history if medical_history.strip() else "None"
     }
 
-    try:
-        resp = requests.post(f"{BACKEND_URL}/process_patient", json=payload, timeout=40)
-        resp.raise_for_status()
-        return resp.json(), None
-    except requests.exceptions.RequestException as e:
-        return None, str(e)
+    resp = requests.post(
+        f"{BACKEND_URL}/process_patient",
+        json=payload,
+        timeout=80
+    )
+    resp.raise_for_status()
+    return resp.json()
 
-# -------- Button + Output --------
+# ---------- Button + validation + output ----------
 if st.button("Generate Clinical Note", type="primary", use_container_width=True):
-    if not name.strip():
+
+    # Basic validation
+    if not patient_name.strip():
         st.error("Please enter a patient name.")
+    elif patient_age <= 0:
+        st.error("Please enter a valid age.")
+    elif gender == "Select":
+        st.error("Please select a gender.")
     elif not symptoms.strip():
         st.error("Please enter symptoms.")
     else:
-        with st.spinner("Contacting backend and generating note..."):
-            result, error = call_backend()
+        with st.spinner("Contacting backend and generating clinical note..."):
+            try:
+                result = call_backend()
+                st.success("Clinical note generated successfully ✅")
 
-        if error:
-            st.error(f"Backend error: {error}")
-        else:
-            st.success("Clinical note generated from cloud backend ✅")
-            st.divider()
+                # Extract note + ICD info
+                note = result["clinical_documentation"]["generated_note"]
+                icd = result["clinical_documentation"]["icd_coding"]
 
-            # Extract fields from backend JSON
-            note = result["clinical_documentation"]["generated_note"]
-            icd = result["clinical_documentation"]["icd_coding"]
+                st.divider()
 
-            st.subheader("📋 Clinical Note")
-            st.markdown(note)
+                # -------- Patient summary --------
+                st.subheader("👤 Patient Summary")
+                st.markdown(f"""
+**Name:** {patient_name}  
+**Age:** {patient_age}  
+**Gender:** {gender}  
 
-            st.subheader("🧾 ICD-10 Coding")
-            st.write(f"**Code:** {icd['code']}")
-            st.write(f"**Description:** {icd['description']}")
-            st.write(f"**Confidence:** {icd['confidence']:.2f}")
+**Symptoms:** {symptoms}  
+**Scan Result:** {scan_result or "Not provided"}  
+**Medical History:** {medical_history or "None reported"}
+                """)
 
-            with st.expander("View raw backend response"):
-                st.json(result)
+                # -------- Clinical note --------
+                st.subheader("📋 Generated Clinical Note")
+                st.markdown(note)
+
+                # -------- ICD-10 coding --------
+                st.subheader("🧾 ICD-10 Coding")
+                st.write(f"**Code:** {icd['code']}")
+                st.write(f"**Description:** {icd['description']}")
+                st.write(f"**Confidence:** {icd['confidence']:.2f}")
+
+                # Raw response (for debugging / screenshots)
+                with st.expander("View raw backend response (JSON)"):
+                    st.json(result)
+
+            except requests.exceptions.RequestException as e:
+                st.error(f"Backend error: {e}")
 
 st.divider()
-st.caption("Backend: " + BACKEND_URL)
+st.caption(f"Backend: {BACKEND_URL}")
