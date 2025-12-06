@@ -142,7 +142,7 @@ st.caption("Backend: " + BACKEND_URL)
 
 st.subheader("🔍 View Saved Records")
 
-if st.button("Load backend records"):
+if st.button("Load Saved records"):
     try:
         resp = requests.get(f"{BACKEND_URL}/records", timeout=30)
         resp.raise_for_status()
